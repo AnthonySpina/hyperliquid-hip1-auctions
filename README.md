@@ -2,6 +2,89 @@
 
 Two scripts for fetching, verifying, and auditing Hyperliquid HIP-1 spot deployment auction revenue.
 
+---
+
+## Results — Last Run: 2026-06-30
+
+### `hip1_auctions.py`
+
+**Annual Totals**
+
+| Year | Auctions | Era | Total (DL) | Total (Gate.io) | Δ |
+|---|---|---|---|---|---|
+| 2024 | 174 | 174 USDC-era, 0 HYPE-era | $9.173M | $9.173M | $0.000M |
+| 2025 | 227 | 112 USDC-era, 115 HYPE-era | $16.365M | $16.352M | +$0.013M |
+| 2026 YTD | 53 | 0 USDC-era, 53 HYPE-era | $1.040M | $1.038M | +$0.002M |
+| **All-time** | **454** | | **$26.578M** | **$26.563M** | **+$0.015M (0.06%)** |
+
+**Price Verification Summary (HYPE-era auctions)**
+
+| Metric | Value |
+|---|---|
+| HYPE-era auctions | 168 (164 unique price dates) |
+| DL prices retrieved | 164/164 |
+| Gate.io coverage | 164/164 dates |
+| OKX coverage | 68/164 dates (Nov 2025+) |
+| DL vs Gate.io avg gap | 3.26% |
+| DL vs Gate.io median gap | 2.45% |
+| DL vs Gate.io max gap | 12.62% (XMR1, 2025-12-17) |
+| Within 5% | 127/164 (77%) |
+| 5–8% range | 26 dates |
+| Above 8% | 11 dates |
+| **Overall verdict** | **✓ CONFIRMED — total divergence 0.06%** |
+
+Date-level gaps >8% (all non-systematic — cancel in total):
+
+| Date | Ticker | DL | Gate.io | Gap |
+|---|---|---|---|---|
+| 2025-05-29 | USDHL | $34.230 | $31.390 | 9.0% |
+| 2025-06-02 | HOLY | $32.690 | $36.480 | 10.4% |
+| 2025-06-20 | SSR | $37.030 | $33.341 | 11.1% |
+| 2025-06-23 | THLP | $35.120 | $38.225 | 8.1% |
+| 2025-10-11 | USDN | $39.954 | $36.793 | 8.6% |
+| 2025-10-15 | MAWARI | $40.418 | $37.396 | 8.1% |
+| 2025-12-17 | XMR1 | $27.571 | $24.481 | 12.6% |
+| 2026-01-26 | AVGO | $22.268 | $24.937 | 10.7% |
+| 2026-01-27 | GLD | $27.720 | $30.836 | 10.1% |
+| 2026-05-22 | WBRL | $60.529 | $54.598 | 10.9% |
+| 2026-05-27 | TREAD | $62.391 | $57.762 | 8.0% |
+| 2026-05-27 | ONEAR | $62.391 | $57.762 | 8.0% |
+
+---
+
+### `hip1_completeness_check.py`
+
+| Metric | Value |
+|---|---|
+| HL spotMeta tokens | 468 total |
+| Non-auction excluded (USDC + PURR) | 2 |
+| HL auctionable tokens | 466 |
+| HypurrScan /pastAuctions | 454 |
+| Matched | 454 |
+| **Missing from HypurrScan** | **12** |
+| Extra in HypurrScan (not in HL) | 0 |
+
+Tokens in HL absent from HypurrScan:
+
+| Token | HL index | Category | deployGas | Status |
+|---|---|---|---|---|
+| VULT | 378 | Standard HIP-1 | 545.14 HYPE | Genuine — supplemented |
+| NBT | 382 | Standard HIP-1 | 538.20 HYPE | Genuine — supplemented |
+| UMON | 383 | Standard HIP-1 | 749.84 HYPE | Genuine — supplemented |
+| USDUC | 384 | Bridge-deployed | 699.64 HYPE | Genuine — supplemented |
+| AXL | 388 | Bridge-deployed | 641.95 HYPE | Genuine — supplemented |
+| BZEC | 389 | Bridge-deployed | 1280.50 HYPE | Genuine — supplemented |
+| UMEGA | 403 | Standard HIP-1 | 500.00 HYPE | Genuine — supplemented |
+| HMT | 405 | Standard HIP-1 | 500.00 HYPE | Genuine — supplemented |
+| CHECK | 427 | Anomalous | — | tokenDetails=null; excluded |
+| BRLA | 434 | Bridge-deployed | 546.88 HYPE | Genuine — supplemented |
+| UVIRT | 443 | Standard HIP-1 | 500.00 HYPE | Genuine — supplemented |
+| HYPE | 150 | Native L1 token | 0 (deployer=None) | Not an auction; excluded |
+
+10 genuine paid auctions missing from HypurrScan (~$246K total, Oct 2025 – Feb 2026).
+
+---
+
 ## Scripts
 
 ### `hip1_auctions.py` — Revenue by Year with Three-Source Price Verification
@@ -30,7 +113,7 @@ Per-auction verification flags:
 - `~ Gate X.X%` — 5–8% gap, within warn threshold
 - `⚠ DL-Gate X.X%` — gap exceeds 8%, flagged for review
 
-**Why gaps exist (expected):** DeFiLlama records prices at noon UTC; Gate.io and OKX record daily closes at midnight UTC. HYPE is volatile — 2–5% intraday swings are normal. Gaps are non-systematic (neither source is consistently higher), so they cancel in annual totals.
+**Why gaps exist (expected):** DeFiLlama records prices at noon UTC; Gate.io and OKX record daily closes at midnight UTC. HYPE is volatile — 2–5% intraday swings are normal. Gaps are non-systematic (neither source is consistently higher), so they cancel in annual totals. 0.06% all-time divergence confirms this.
 
 **Output:**
 - Per-year tables: HYPE-era auctions with all three prices + verification status; USDC-era auctions with USDC amounts
@@ -65,18 +148,18 @@ Cross-checks HypurrScan `/pastAuctions` against Hyperliquid's own `spotMeta` API
 - Table of any HypurrScan records not in HL spotMeta
 - Summary counts
 
-**Key findings:**
+**Missing token categories:**
 
-HypurrScan is not exhaustive. Tokens confirmed missing fall into distinct categories:
-
-| Category | Examples | Status |
+| Category | How to identify | Examples |
 |---|---|---|
-| Bridge-deployed (genesis holder = `0x2000…` vault) | AXL, BZEC, USDUC, BRLA | Genuine HIP-1 — paid HYPE gas normally |
-| Standard HIP-1 tokens HL indexed, HypurrScan missed | VULT, NBT, UMON, UMEGA, HMT, UVIRT | Genuine HIP-1 — paid HYPE gas normally |
-| Native L1 HYPE token (index 150, `deployer=None`, `deployGas=0`) | HYPE | Not an auction — excluded |
-| Anomalous (`tokenDetails` returns null) | CHECK | Unknown state — excluded |
+| Bridge-deployed | Genesis holder = `0x2000…` vault address | AXL, BZEC, USDUC, BRLA |
+| Standard HIP-1 missed | Normal deployer, non-zero gas, absent from HypurrScan | VULT, NBT, UMON, UMEGA, HMT, UVIRT |
+| Native L1 token | `deployer=None`, `deployGas=0` | HYPE (index 150) |
+| Anomalous | `tokenDetails` returns null | CHECK |
 
-Total genuine missed auction revenue: ~$246K across 10 tokens (Oct 2025 – Feb 2026).
+Bridge-deployed tokens still paid genuine HYPE auction gas through the standard HIP-1 mechanism — the `0x2000…` genesis holder is just where the initial token supply was minted (a bridge vault), not an indicator of a different deployment process.
+
+---
 
 ## Data Sources
 
